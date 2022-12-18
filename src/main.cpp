@@ -1,8 +1,13 @@
 /*
  */
 #include <Arduino.h>
+#include <WireGuard-ESP32.h>
+#include <WiFi.h>
 
-// We're 
+// Secrets
+#include "Secrets.hpp"
+
+// ESP32 doesn't have pin restrictions, so we can use the timer to save a bunch of CPU cycles
 #define SEND_PWM_BY_TIMER
 #include <IRremote.hpp>
 
@@ -24,12 +29,37 @@ const char volDown[]
         "0015 0016 0015 0016 0015 0041 0015 0016 0015 0041 0015 0041 0015 0041 0015 0016 0015 0F7D";
 
 IRsend irsend;
+WireGuard wg;
 
 void setup() {
     Serial.begin(115200);
     while (!Serial); // Wait for serial
 
-    IrSender.begin();
+    // Init WiFi
+    WiFi.begin(wifi_config::ssid, wifi_config::password);
+    Serial.println("Connecting to WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.printf("Connected to network %s\r\n", wifi_config::ssid);
+
+    // Sync time via NTP
+    configTime(9 * 60 * 60, 0, "ntp.jst.mfeed.ad.jp", "ntp.nict.jp", "time.google.com");
+    
+    // Initialize WireGuard
+    Serial.println("Initializing WireGuard...");
+    bool res = wg.begin(wg_config::local,
+                        wg_config::private_key,
+                        wg_config::remote,
+                        wg_config::public_key,
+                        wg_config::port);
+    if (!res) {
+        Serial.println("Failed to initialize WireGuard, panicking!");
+        while (true);
+    }
+    Serial.println("WireGuard initialized.");
+    IrSender.begin(13);
     //IrSender.begin(3, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
 
     Serial.print(F("Ready to send IR signals at pin "));

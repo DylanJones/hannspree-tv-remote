@@ -1,0 +1,6 @@
+[submodule "lib/WireGuard-ESP32-Arduino"]
+	path = lib/WireGuard-ESP32-Arduino
+	url = https://github.com/ciniml/WireGuard-ESP32-Arduino.git
+[submodule "lib/Arduino-IRremote"]
+	path = lib/Arduino-IRremote
+	url = https://github.com/Arduino-IRremote/Arduino-IRremote
