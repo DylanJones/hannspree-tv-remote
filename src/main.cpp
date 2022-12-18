@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <WireGuard-ESP32.h>
 #include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 
 // Secrets
 #include "Secrets.hpp"
@@ -30,6 +32,11 @@ const char volDown[]
 
 IRsend irsend;
 WireGuard wg;
+AsyncWebServer server(80);
+
+void notFound(AsyncWebServerRequest *request) {
+    request->send(404, "text/plain", "Not found");
+}
 
 void setup() {
     Serial.begin(115200);
@@ -42,7 +49,7 @@ void setup() {
         delay(500);
         Serial.print(".");
     }
-    Serial.printf("Connected to network %s\r\n", wifi_config::ssid);
+    Serial.printf("Connected to network %s!  IP: %s\r\n", wifi_config::ssid, WiFi.localIP().toString().c_str());
 
     // Sync time via NTP
     configTime(9 * 60 * 60, 0, "ntp.jst.mfeed.ad.jp", "ntp.nict.jp", "time.google.com");
@@ -59,10 +66,18 @@ void setup() {
         while (true);
     }
     Serial.println("WireGuard initialized.");
-    IrSender.begin(13);
-    //IrSender.begin(3, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
 
-    Serial.print(F("Ready to send IR signals at pin "));
+    // Initialize hardware (IR)
+    IrSender.begin(13);
+    Serial.println("Ready to send IR signals at pin 13");
+
+    /// Web server config
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(200, "text/plain", "Hello, world");
+    });
+    
+    server.onNotFound(notFound);
+    server.begin();
 }
 
 void loop() {
